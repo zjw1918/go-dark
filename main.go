@@ -34,7 +34,9 @@ func main() {
 	}
 	cancel()
 	for i := 0; i < 5; i++ {
-		fmt.Println(<-arr)
+		if v, ok := <-arr; ok {
+			fmt.Println(v)
+		}
 	}
 
 	PrintMemUsage()
@@ -70,19 +72,25 @@ func addByTick(base, offset int, seconds time.Duration) chan int {
 
 func makeArray(ctx context.Context, from, to int) chan int {
 	ch := make(chan int, 0)
+	isCalceled := false
 	go func() {
 	tag:
 		for i := from; i < to; i++ {
 			select {
 			case <-ctx.Done():
+				isCalceled = true
 				fmt.Println("ctx.Done")
-				// close(ch)
+				close(ch)
 				break tag
-			case ch <- i:
-
+			default:
+				if !isCalceled {
+					ch <- i
+				}
 			}
 		}
-		close(ch)
+		if !isCalceled {
+			close(ch)
+		}
 	}()
 	return ch
 }
